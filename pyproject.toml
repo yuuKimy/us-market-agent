@@ -1,0 +1,33 @@
+[project]
+name = "market-agent"
+version = "0.1.0"
+description = "Personal US market analysis agent environment (Alpaca MCP + FRED + DuckDB)"
+authors = [
+    { name = "yuuKimy", email = "4424080+yuuKimy@users.noreply.github.com" }
+]
+requires-python = ">=3.12"
+dependencies = [
+    "alpaca-py>=0.44.0",
+    "duckdb>=1.5.6",
+    "fredapi>=0.5.2",
+    "matplotlib>=3.11.2",
+    "pandas>=3.0.6",
+    "python-dotenv>=1.2.4",
+    "statsmodels>=0.15.0",
+]
+
+[project.scripts]
+mkt = "market_agent.cli:main"
+
+[build-system]
+requires = ["uv_build>=0.13.0,<0.14.0"]
+build-backend = "uv_build"
+
+[tool.ruff]
+line-length = 120
+
+[dependency-groups]
+dev = [
+    "pytest>=9.1.1",
+    "ruff>=0.17.1",
+]
