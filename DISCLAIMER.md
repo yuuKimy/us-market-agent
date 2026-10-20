@@ -35,4 +35,12 @@
 Fetched data is stored locally under `data/` and is intentionally excluded from the repository.
 Follow each provider's terms of use; this repository does not redistribute their data.
 
+This product uses the FRED® API but is not endorsed or certified by the Federal Reserve Bank of St. Louis.
+By using this project, you agree to the [FRED® API Terms of Use](https://fred.stlouisfed.org/docs/api/terms_of_use.html)
+and to [Alpaca's terms](https://files.alpaca.markets/disclosures/library/TermsAndConditions.pdf) for your own account.
+Use your own API keys. Fetched data is for your personal, non-commercial use only. Some FRED series are copyrighted by
+third parties (for example, `VIXCLS` by Cboe); do not publish them without the owner's permission.
+
 取得したデータはローカルの `data/` にのみ保存し、リポジトリには含めていません。各データ提供元の利用規約に従ってください。本リポジトリはそれらのデータを再配布しません。
+
+本製品は FRED® API を利用していますが、セントルイス連邦準備銀行による承認・認定を受けたものではありません。本プロジェクトを利用する場合は、[FRED® API 利用規約](https://fred.stlouisfed.org/docs/api/terms_of_use.html) と、ご自身のアカウントに適用される [Alpaca の利用規約](https://files.alpaca.markets/disclosures/library/TermsAndConditions.pdf) に同意したものとみなします。API キーはご自身のものを使い、取得したデータは個人的・非商用の利用にとどめてください。FRED の一部の系列（例: Cboe が著作権を持つ `VIXCLS`）は第三者の著作物のため、権利者の許可なく公開しないでください。

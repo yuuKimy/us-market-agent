@@ -17,6 +17,11 @@ It combines:
 > shared for reference only. It is **not investment advice**. All investment decisions are your
 > own responsibility, and the author accepts **no liability** for any loss arising from its use.
 > See [DISCLAIMER.md](DISCLAIMER.md) (English / 日本語).
+>
+> This product uses the FRED® API but is not endorsed or certified by the Federal Reserve Bank of
+> St. Louis. By using this project, you agree to the
+> [FRED® API Terms of Use](https://fred.stlouisfed.org/docs/api/terms_of_use.html) and to Alpaca's
+> terms for your own account. Use your own API keys; fetched data is for your personal use only.
 
 ## Design principles
 
