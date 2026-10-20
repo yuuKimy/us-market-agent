@@ -5,6 +5,7 @@ from pathlib import Path
 import matplotlib
 
 matplotlib.use("Agg")
+import matplotlib.dates as mdates
 import matplotlib.pyplot as plt
 import pandas as pd
 from matplotlib.ticker import AutoMinorLocator, MaxNLocator
@@ -128,4 +129,7 @@ def sentiment(joined: pd.DataFrame, closes: pd.DataFrame, name: str) -> Path:
         ax2 = ax.twinx()
         ax2.plot(price.index, price.values, color="black", linewidth=1)
         ax2.set_ylabel("close")
+        locator = mdates.AutoDateLocator(maxticks=10)
+        ax.xaxis.set_major_locator(locator)
+        ax.xaxis.set_major_formatter(mdates.ConciseDateFormatter(locator))
     return _save(fig, name)
