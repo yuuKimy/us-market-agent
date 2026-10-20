@@ -234,6 +234,19 @@ tests/
 
 `data/` (DuckDB) and `reports/` (charts, score files) are local only and git-ignored.
 
+## Using it from another project
+
+The package can be installed into a separate project (for example, a research repository),
+pinned to a commit:
+
+```bash
+uv add "market-agent @ git+https://github.com/yuuKimy/us-market-agent@<commit>"
+```
+
+`.env`, `data/` and `reports/` are then resolved from `MARKET_AGENT_HOME` if set, otherwise
+from the current working directory. When running from this checkout, they stay in the repository
+root as before.
+
 ## Data notes and limitations
 
 - **IEX feed.** Alpaca paper-only accounts receive IEX data: history starts on 2020-07-27, and

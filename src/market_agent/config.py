@@ -3,7 +3,20 @@ from pathlib import Path
 
 from dotenv import load_dotenv
 
-ROOT = Path(__file__).resolve().parents[2]
+
+def _home() -> Path:
+    """Where .env, data/ and reports/ live.
+
+    MARKET_AGENT_HOME wins; otherwise the source checkout when running from it,
+    or the current directory when the package is installed into another project.
+    """
+    if home := os.environ.get("MARKET_AGENT_HOME"):
+        return Path(home).expanduser().resolve()
+    source_root = Path(__file__).resolve().parents[2]
+    return source_root if (source_root / "pyproject.toml").exists() else Path.cwd()
+
+
+ROOT = _home()
 DATA_DIR = ROOT / "data"
 REPORTS_DIR = ROOT / "reports"
 DB_PATH = Path(os.environ.get("MARKET_AGENT_DB", DATA_DIR / "market.duckdb"))
