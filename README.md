@@ -13,8 +13,10 @@ It combines:
   series (Treasury yields, USD/JPY, dollar index, VIX) in DuckDB, and runs the analysis and charts
 - **Cursor rules and skills** that define repeatable analysis workflows and answer formats
 
-> This project is shared for reference only. Nothing it produces is investment advice.
-> See [DISCLAIMER.md](DISCLAIMER.md).
+> **Disclaimer.** This is a personal tool for gathering and analyzing information on US stocks,
+> shared for reference only. It is **not investment advice**. All investment decisions are your
+> own responsibility, and the author accepts **no liability** for any loss arising from its use.
+> See [DISCLAIMER.md](DISCLAIMER.md) (English / 日本語).
 
 ## Design principles
 
