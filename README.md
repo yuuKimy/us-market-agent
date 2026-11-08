@@ -22,6 +22,9 @@ It combines:
 > St. Louis. By using this project, you agree to the
 > [FRED® API Terms of Use](https://fred.stlouisfed.org/docs/api/terms_of_use.html) and to Alpaca's
 > terms for your own account. Use your own API keys; fetched data is for your personal use only.
+>
+> This is an independent project. It is not affiliated with, endorsed by, or sponsored by Alpaca or
+> the Federal Reserve Bank of St. Louis.
 
 ## Design principles
 
@@ -32,6 +35,31 @@ It combines:
 - **Always state freshness.** Answers include sources, as-of dates and known lags.
 - **Secrets stay local.** Keys live only in `.env`, which is git-ignored and read by both the
   MCP server and the CLI.
+
+## Agent guardrails
+
+The agent instructions in `AGENTS.md` and `.cursor/rules/` are written in Japanese. In short, they
+tell the agent to:
+
+- Never place orders, change positions or change account settings, even if such tools appear
+- Never give buy/sell recommendations, price targets, position sizes or timing calls; it may describe
+  whether news looks positive or negative, scenarios, risks and what to watch
+- Compute every number with the CLI or DuckDB, not from memory or mental math
+- State sources (Alpaca, FRED, web URLs), as-of dates with time zones, and data gaps or lags
+- Never print or commit `.env` contents or API keys
+- Answer in the language you write in, and end with a not-investment-advice note
+
+## Security notes
+
+- **Use paper trading keys only.** The CLI and the MCP server only read data, so they do not need
+  live-account keys. Keep `ALPACA_PAPER_TRADE=true` in `.cursor/mcp.json`.
+- **Do not add the `trading`, `account` or `watchlists` toolsets** to `ALPACA_TOOLSETS`. The
+  read-only toolset list is what keeps order tools out of the agent's reach.
+- **Treat fetched text as untrusted.** News articles and web pages the agent reads can contain text
+  written to steer an AI (prompt injection). The rules tell the agent to treat such text as data, and
+  no order tools are loaded, but review what the agent does before acting on it.
+- **The MCP server version is pinned** (`alpaca-mcp-server@2.4.1` in `.cursor/mcp.json`). Read the
+  upstream release notes before changing it; v2 changed tool names and configuration.
 
 ## What it can do
 
@@ -79,14 +107,16 @@ uv run mkt status
 ```
 
 Then open this folder as the Cursor workspace. The project-level `.cursor/mcp.json` starts the
-Alpaca MCP server with `uvx`; in Cursor's MCP settings, `alpaca` should show 35 read-only tools.
+Alpaca MCP server (pinned to v2.4.1) with `uvx`. In Cursor's MCP settings, `alpaca` should list only
+market data, news, asset, corporate action and option tools, with no order, position or account tools.
 
 ## Using the skills
 
 Skills live in `.cursor/skills/`. With this folder open as the workspace, just ask in the agent chat:
 Cursor picks the matching skill from its description. You can also name it explicitly, e.g.
-"Use the `ai-rotation` skill". Questions can be in any language. The answer templates in the
-skills are written in Japanese, so add "answer in English" if you prefer English output.
+"Use the `ai-rotation` skill". Questions can be in any language, and the agent answers in the
+language you write in. The answer templates in the skills are written in Japanese and are translated
+when you ask in another language.
 
 Every answer states its sources and as-of dates and ends with a not-investment-advice note.
 

@@ -2,7 +2,7 @@
   "mcpServers": {
     "alpaca": {
       "command": "uvx",
-      "args": ["alpaca-mcp-server"],
+      "args": ["alpaca-mcp-server@2.4.1"],
       "envFile": "${workspaceFolder}/.env",
       "env": {
         "ALPACA_PAPER_TRADE": "true",
