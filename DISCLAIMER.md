@@ -17,6 +17,8 @@
    timeliness of any data or analysis.
 6. **Software.** The software is provided "as is" under the [MIT License](LICENSE), without
    warranty of any kind.
+7. **Independent project.** This project is not affiliated with, endorsed by, or sponsored by
+   Alpaca or the Federal Reserve Bank of St. Louis.
 
 ## 日本語
 
@@ -26,6 +28,7 @@
 4. **作成者は一切の責任を負いません**: 本リポジトリおよびその出力の利用、またはそれらに依拠したことによって生じたいかなる損失・損害（直接・間接を問いません）についても、本リポジトリの作成者は一切の責任を負いません。
 5. **正確性は保証しません**: データには遅延・欠損・誤りが含まれる可能性があり、AI エージェントが生成する出力にも誤りが含まれる可能性があります。データおよび分析結果の正確性・完全性・適時性は保証しません。
 6. **ソフトウェア**: 本ソフトウェアは [MIT License](LICENSE) に基づき、「現状のまま」いかなる保証もなく提供されます。
+7. **独立したプロジェクトです**: 本プロジェクトは、Alpaca およびセントルイス連邦準備銀行と提携しておらず、両者による承認・後援も受けていません。
 
 ## Data sources / データソース
 
