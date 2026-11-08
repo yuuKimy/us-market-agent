@@ -47,7 +47,7 @@ step in the `ticker-deep-dive` skill with the watchlist symbols.
 
 ## Answer format (Japanese)
 
-回答全体（作業中の進捗報告、見出し、表、図の説明を含む）を自然な日本語で書く。英語の文や見出しを混ぜない。ティッカー、系列 ID、コマンドは原文のままでよい。
+Write the whole answer, including progress updates, headings, tables and figure captions, in the language the user wrote in, as natural prose. If the user writes in Japanese, do not mix in English sentences or headings. The template below is in Japanese; translate it when answering in another language. Tickers, series IDs and commands stay as-is.
 
 ```markdown
 ## 米国市場概況（{session} ET 時点 / 取引時間中なら「場中」と明記）
