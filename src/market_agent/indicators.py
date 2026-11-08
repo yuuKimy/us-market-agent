@@ -86,22 +86,28 @@ def basket_index(prices: pd.DataFrame, members: list[str]) -> pd.Series:
     return 100 * (1 + daily.fillna(0)).cumprod()
 
 
-def rotation_regimes(rel_return: pd.Series, threshold: float) -> pd.Series:
+def rotation_regimes(
+    rel_return: pd.Series, threshold: float, labels: tuple[str, str] = ("AI lead", "non-AI lead")
+) -> pd.Series:
     """Label each day by which side leads, with hysteresis: the label only flips once the
     rolling relative return crosses the opposite threshold."""
-    state, labels = None, []
+    state, out = None, []
     for v in rel_return:
         if pd.notna(v):
             if v > threshold:
-                state = "AI lead"
+                state = labels[0]
             elif v < -threshold:
-                state = "non-AI lead"
-        labels.append(state)
-    return pd.Series(labels, index=rel_return.index, dtype=object)
+                state = labels[1]
+        out.append(state)
+    return pd.Series(out, index=rel_return.index, dtype=object)
 
 
 def regime_segments(
-    regime: pd.Series, ai_index: pd.Series, non_ai_index: pd.Series, macro: pd.DataFrame
+    regime: pd.Series,
+    ai_index: pd.Series,
+    non_ai_index: pd.Series,
+    macro: pd.DataFrame,
+    names: tuple[str, str] = ("ai", "non_ai"),
 ) -> pd.DataFrame:
     """One row per contiguous regime: returns from the prior close to the segment's last close,
     plus macro changes over the same span (yields in bp, others in %)."""
@@ -118,8 +124,8 @@ def regime_segments(
             "start": start.date(),
             "end": end.date(),
             "days": len(seg),
-            "ai_%": ai_ret,
-            "non_ai_%": non_ret,
+            f"{names[0]}_%": ai_ret,
+            f"{names[1]}_%": non_ret,
             "spread_pt": ai_ret - non_ret,
         }
         for col in macro.columns:
@@ -131,6 +137,17 @@ def regime_segments(
             else:
                 row[change_column(col)] = (after.iloc[-1] / before.iloc[-1] - 1) * 100
         rows.append(row)
+    return pd.DataFrame(rows)
+
+
+def period_returns(indices: pd.DataFrame, windows: tuple[int, ...] = (5, 20, 63)) -> pd.DataFrame:
+    """Percent change of each index column over the last N rows and year to date (from the last
+    row of the prior calendar year, or the first row if the data starts this year)."""
+    last = indices.iloc[-1]
+    rows = {f"{n}d_%": (last / indices.iloc[-1 - n] - 1) * 100 for n in windows if len(indices) > n}
+    prior = indices.loc[indices.index.year < indices.index[-1].year]
+    base = prior.iloc[-1] if not prior.empty else indices.iloc[0]
+    rows["ytd_%"] = (last / base - 1) * 100
     return pd.DataFrame(rows)
 
 

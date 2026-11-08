@@ -12,6 +12,7 @@ from market_agent.config import (
     FRED_SERIES,
     REPORTS_DIR,
     ROTATION_AI,
+    ROTATION_BASKETS,
     ROTATION_NON_AI,
 )
 
@@ -202,17 +203,32 @@ def cmd_cross_asset(args: argparse.Namespace) -> None:
         print(f"plot: {plots.prices_and_macro(levels, symbols, series, name)}")
 
 
+def _basket(name: str) -> list[str]:
+    if name not in ROTATION_BASKETS:
+        raise SystemExit(f"Unknown basket {name!r}. Choose from: {', '.join(ROTATION_BASKETS)}")
+    return ROTATION_BASKETS[name]
+
+
 def cmd_rotation(args: argparse.Namespace) -> None:
-    ai, non_ai, series = _upper(args.ai), _upper(args.non_ai), _upper(args.series)
+    if args.baskets:
+        a, b = args.baskets
+        ai, non_ai = _basket(a), _basket(b)
+        labels = names = (a, b)
+        plot_name = f"rotation_{a}_vs_{b}"
+    else:
+        ai, non_ai = _upper(args.ai), _upper(args.non_ai)
+        labels, names, plot_name = ("AI", "non-AI"), ("ai", "non_ai"), "rotation_ai"
+    lead = (f"{labels[0]} lead", f"{labels[1]} lead")
+    series = _upper(args.series)
     levels = _levels(store.connect(read_only=True), ai + non_ai, series, args.start)
     prices = levels[ai + non_ai]
     ai_idx, non_idx = indicators.basket_index(prices, ai), indicators.basket_index(prices, non_ai)
     rs = ai_idx / non_idx * 100
     rel = (rs / rs.shift(args.window) - 1) * 100
-    regime = indicators.rotation_regimes(rel, args.threshold)
-    segments = indicators.regime_segments(regime, ai_idx, non_idx, levels[series])
+    regime = indicators.rotation_regimes(rel, args.threshold, lead)
+    segments = indicators.regime_segments(regime, ai_idx, non_idx, levels[series], names)
 
-    print(f"# AI vs non-AI rotation | AI: {' '.join(ai)} | non-AI: {' '.join(non_ai)}")
+    print(f"# {labels[0]} vs {labels[1]} rotation | {labels[0]}: {' '.join(ai)} | {labels[1]}: {' '.join(non_ai)}")
     print(f"Equal-weight daily-rebalanced baskets. Regime = sign of {args.window}-day relative return "
           f"beyond ±{args.threshold}% (hysteresis), so turns are detected with a lag.")
     _print("data coverage", _as_of(levels))
@@ -232,7 +248,7 @@ def cmd_rotation(args: argparse.Namespace) -> None:
     _print("summary", pd.DataFrame([{
         "period": f"{labeled.index[0]:%Y-%m-%d}..{labeled.index[-1]:%Y-%m-%d}",
         "switches": len(segments) - 1,
-        "ai_lead_share_%": (labeled == "AI lead").mean() * 100,
+        f"{names[0]}_lead_share_%": (labeled == lead[0]).mean() * 100,
         "median_segment_days": segments["days"].median(),
     }]))
     _print(f"regime segments (last {args.segments})", segments.tail(args.segments), digits=2)
@@ -241,20 +257,40 @@ def cmd_rotation(args: argparse.Namespace) -> None:
         f"{n}d_%": (prices.iloc[-1] / prices.iloc[-1 - n] - 1) * 100 for n in (args.window, 63) if len(prices) > n
     }
     members = pd.DataFrame(member_ret)
-    members.insert(0, "side", ["AI" if s in ai else "non-AI" for s in members.index])
+    members.insert(0, "side", [labels[0] if s in ai else labels[1] for s in members.index])
     _print("members (who is driving)", members)
 
     if series:
         daily_rel = ((ai_idx / ai_idx.shift(1)) - (non_idx / non_idx.shift(1))) * 100
         macro_changes = indicators.to_changes(levels[series])
         recent = macro_changes.index[-60:]
-        _print("correlation of daily AI-minus-non-AI return with macro changes", pd.DataFrame({
+        _print(f"correlation of daily {labels[0]}-minus-{labels[1]} return with macro changes", pd.DataFrame({
             "full": macro_changes.corrwith(daily_rel),
             "last_60d": macro_changes.loc[recent].corrwith(daily_rel.loc[recent]),
         }))
 
     if args.plot:
-        print(f"plot: {plots.rotation(ai_idx, non_idx, rel, segments, args.window, args.threshold, 'rotation_ai')}")
+        path = plots.rotation(ai_idx, non_idx, rel, segments, args.window, args.threshold, plot_name, labels)
+        print(f"plot: {path}")
+
+
+def cmd_baskets(args: argparse.Namespace) -> None:
+    names = args.names or list(ROTATION_BASKETS)
+    members = {n: _basket(n) for n in names}
+    symbols = list(dict.fromkeys(s for m in members.values() for s in m))
+    prices = _levels(store.connect(read_only=True), symbols, [], args.start)[symbols]
+    indices = pd.DataFrame({n: indicators.basket_index(prices, m) for n, m in members.items()})
+
+    print(f"# Equal-weight baskets (daily rebalanced) | start {args.start}")
+    for n, m in members.items():
+        print(f"- {n}: {' '.join(m)}")
+    _print("data coverage", _as_of(prices))
+    _print("basket returns", indicators.period_returns(indices), digits=2)
+    member_returns = indicators.period_returns(prices)
+    member_returns.insert(0, "basket", [next(n for n, m in members.items() if s in m) for s in member_returns.index])
+    _print("members", member_returns, digits=2)
+    if args.plot:
+        print(f"plot: {plots.baskets(indices, 'baskets_' + '_'.join(names))}")
 
 
 def cmd_plot_prices(args: argparse.Namespace) -> None:
@@ -479,9 +515,11 @@ def build_parser() -> argparse.ArgumentParser:
     ca.add_argument("--market", default="SPY", help="market factor symbol, or 'none'")
     ca.add_argument("--plot", action="store_true")
     ca.set_defaults(func=cmd_cross_asset)
-    ro = analyze.add_parser("rotation", help="AI vs non-AI leadership regimes")
+    ro = analyze.add_parser("rotation", help="AI vs non-AI (or two named baskets) leadership regimes")
     ro.add_argument("--ai", nargs="+", default=ROTATION_AI)
     ro.add_argument("--non-ai", nargs="+", default=ROTATION_NON_AI)
+    ro.add_argument("--baskets", nargs=2, metavar=("A", "B"), choices=list(ROTATION_BASKETS),
+                    help=f"compare two named baskets instead of --ai/--non-ai: {', '.join(ROTATION_BASKETS)}")
     ro.add_argument("--series", nargs="*", default=["DGS10", "DEXJPUS", "VIXCLS"])
     ro.add_argument("--start", default=str(date.today() - timedelta(days=2 * 365)))
     ro.add_argument("--window", type=int, default=20)
@@ -489,6 +527,11 @@ def build_parser() -> argparse.ArgumentParser:
     ro.add_argument("--segments", type=int, default=12, help="number of recent segments to list")
     ro.add_argument("--plot", action="store_true")
     ro.set_defaults(func=cmd_rotation)
+    bk = analyze.add_parser("baskets", help="returns of several named equal-weight baskets side by side")
+    bk.add_argument("names", nargs="*", choices=list(ROTATION_BASKETS), help="default: all named baskets")
+    bk.add_argument("--start", default=str(date.today() - timedelta(days=2 * 365)))
+    bk.add_argument("--plot", action="store_true")
+    bk.set_defaults(func=cmd_baskets)
 
     plot = sub.add_parser("plot").add_subparsers(dest="chart", required=True)
     pp = plot.add_parser("prices", help="rebased prices with macro series")

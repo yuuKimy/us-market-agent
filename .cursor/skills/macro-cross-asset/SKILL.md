@@ -57,6 +57,8 @@ For a quick visual only: `uv run mkt plot prices NVDA SPY --series DGS10 DEXJPUS
 
 **4. Answer format** (Japanese)
 
+回答全体（作業中の進捗報告、見出し、表、図の説明を含む）を自然な日本語で書く。英語の文や見出しを混ぜない。ティッカー、系列 ID、コマンドは原文のままでよい。
+
 ```markdown
 ## {TICKER} の金利・ドル円感応度（{start}〜{end}、日次 n={n}）
 

@@ -62,6 +62,8 @@ layout, edit the template and re-run. Link the canvas with its absolute path in 
 
 ## Answer format (Japanese)
 
+回答全体（作業中の進捗報告、見出し、表、図の説明を含む）を自然な日本語で書く。英語の文や見出しを混ぜない。ティッカー、系列 ID、コマンドは原文のままでよい。
+
 ```markdown
 ## {TICKER} 総合分析（{as_of} 時点）
 
