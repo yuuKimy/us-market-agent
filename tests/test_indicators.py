@@ -35,6 +35,28 @@ def test_rotation_regimes_hold_until_opposite_threshold():
     assert list(regime) == [None, None, "AI lead", "AI lead", "AI lead", "non-AI lead", "non-AI lead"]
 
 
+def test_rotation_regimes_and_segments_use_custom_basket_names():
+    days = pd.bdate_range("2026-01-05", periods=3)
+    rel = pd.Series([5.0, 0.0, -5.0], index=days)
+
+    regime = indicators.rotation_regimes(rel, threshold=4.0, labels=("compute_hw lead", "backers lead"))
+    idx = pd.Series([100.0, 101.0, 102.0], index=days)
+    seg = indicators.regime_segments(regime, idx, idx, pd.DataFrame(index=days), names=("compute_hw", "backers"))
+
+    assert list(regime) == ["compute_hw lead", "compute_hw lead", "backers lead"]
+    assert {"compute_hw_%", "backers_%"} <= set(seg.columns)
+
+
+def test_period_returns_measure_windows_and_year_to_date():
+    days = pd.bdate_range("2025-12-29", periods=8)
+    indices = pd.DataFrame({"a": [100.0, 105.0, 110.0, 120.0, 120.0, 120.0, 120.0, 132.0]}, index=days)
+
+    out = indicators.period_returns(indices, windows=(3,))
+
+    assert out.loc["a", "3d_%"] == pytest.approx(10.0)
+    assert out.loc["a", "ytd_%"] == pytest.approx(20.0)
+
+
 def test_regime_segments_measure_from_prior_close():
     days = pd.bdate_range("2026-01-05", periods=4)
     ai = pd.Series([100.0, 110.0, 121.0, 121.0], index=days)

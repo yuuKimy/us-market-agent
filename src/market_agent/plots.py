@@ -88,15 +88,17 @@ def rotation(
     window: int,
     threshold: float,
     name: str,
+    labels: tuple[str, str] = ("AI", "non-AI"),
 ) -> Path:
+    a, b = labels
     fig, axes = plt.subplots(3, 1, figsize=(WIDTH, 9), sharex=True, height_ratios=[2, 2, 1.4])
-    ai_index.plot(ax=axes[0], label="AI basket", color="tab:blue")
-    non_ai_index.plot(ax=axes[0], label="non-AI basket", color="tab:gray")
+    ai_index.plot(ax=axes[0], label=f"{a} basket", color="tab:blue")
+    non_ai_index.plot(ax=axes[0], label=f"{b} basket", color="tab:gray")
     axes[0].set_title("Equal-weight baskets, rebased to 100")
     axes[0].legend(loc="upper left")
     _baseline(axes[0], 100)
     (ai_index / non_ai_index * 100).plot(ax=axes[1], color="black", linewidth=1.2)
-    axes[1].set_title("Relative strength: AI / non-AI (100 = start)")
+    axes[1].set_title(f"Relative strength: {a} / {b} (100 = start)")
     _baseline(axes[1], 100)
     rel_return.plot(ax=axes[2], color="tab:purple", linewidth=1)
     for level in (threshold, -threshold):
@@ -106,10 +108,22 @@ def rotation(
     for ax in axes:
         _guides(ax)
     for seg in segments.itertuples():
-        color = "tab:blue" if seg.regime == "AI lead" else "tab:orange"
+        color = "tab:blue" if seg.regime == f"{a} lead" else "tab:orange"
         for ax in axes:
             ax.axvspan(pd.Timestamp(seg.start), pd.Timestamp(seg.end), color=color, alpha=0.08, linewidth=0)
-    axes[-1].set_xlabel("shaded: blue = AI lead, orange = non-AI lead")
+    axes[-1].set_xlabel(f"shaded: blue = {a} lead, orange = {b} lead")
+    return _save(fig, name)
+
+
+def baskets(indices: pd.DataFrame, name: str) -> Path:
+    fig, ax = plt.subplots(figsize=(WIDTH, 5.5))
+    indices.plot(ax=ax, linewidth=1.3)
+    ax.set_title("Equal-weight baskets, rebased to 100")
+    ax.set_ylabel("index (start = 100)")
+    _baseline(ax, 100)
+    _guides(ax)
+    ax.legend(loc="upper left")
+    ax.set_xlabel("")
     return _save(fig, name)
 
 

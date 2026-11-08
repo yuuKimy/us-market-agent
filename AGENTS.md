@@ -37,7 +37,8 @@ mkt fetch news SYMBOL ... [--start D] [--end D] [--limit N]
 mkt query "SELECT ..."                     # DuckDB への読み取り専用 SQL
 mkt snapshot SYMBOL ...                    # 保存済み日足から騰落率・出来高比
 mkt analyze cross-asset SYMBOL ... [--series DGS10 DEXJPUS] [--start D] [--window 60] [--freq D|W] [--market SPY] [--plot]
-mkt analyze rotation [--ai ...] [--non-ai ...] [--series ...] [--window 20] [--threshold 4] [--plot]
+mkt analyze rotation [--ai ...] [--non-ai ...] [--baskets A B] [--series ...] [--window 20] [--threshold 4] [--plot]
+mkt analyze baskets [NAME ...] [--start D] [--plot]   # 名前付きバスケット（ai, non_ai, compute_hw, compute_cloud, backers）を並べて比較
 mkt plot prices SYMBOL ... [--series DGS10] [--start D]
 mkt news unscored [--symbols S ...] [--start D] [--limit N]   # 未採点ニュースを JSONL で出力
 mkt sentiment import FILE|-                # 採点結果 JSONL を保存
@@ -60,7 +61,7 @@ DuckDB テーブル: `bars_daily`, `macro_series`, `news`, `news_sentiment`（�
 - `macro-cross-asset`: 株式と利回り・ドル円の関係
 - `news-sentiment`: ニュースセンチメントの採点と集計
 - `ticker-deep-dive`: 1 銘柄の総合分析
-- `ai-rotation`: AI 関連とそれ以外の主導権の入れ替わり（ETF バスケットの相対強度と局面判定）
+- `ai-rotation`: AI 関連とそれ以外の主導権の入れ替わり（ETF バスケットの相対強度と局面判定）。計算資源の供給側（半導体・クラウド）と出資・支援側（大手テック）の比較も扱う
 - `article-briefing`: ユーザーが渡した外部記事（URL・本文）の要約、市場データとの照合、材料の方向感・シナリオ・注意点
 
 ## 開発

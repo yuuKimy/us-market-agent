@@ -42,6 +42,17 @@ DEFAULT_HISTORY_START = "2020-01-01"
 ROTATION_AI = ["SMH", "QQQ"]
 ROTATION_NON_AI = ["RSP", "IWM", "XLV", "XLP", "XLU"]
 
+# Named equal-weight baskets for `mkt analyze rotation --baskets A B` and `mkt analyze baskets`.
+# The AI value chain is split into chip/network suppliers, compute renters and the large-cap backers
+# that fund AI labs and buy the compute (they also run clouds, so they are kept as their own group).
+ROTATION_BASKETS = {
+    "ai": ROTATION_AI,
+    "non_ai": ROTATION_NON_AI,
+    "compute_hw": ["NVDA", "AMD", "AVGO", "MU", "TSM", "LRCX", "ANET"],
+    "compute_cloud": ["CRWV", "NBIS", "ORCL"],
+    "backers": ["MSFT", "AMZN", "GOOGL", "META"],
+}
+
 
 def require_env(name: str) -> str:
     value = os.environ.get(name)

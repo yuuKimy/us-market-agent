@@ -40,6 +40,7 @@ It combines:
 | Market overview (indices, movers, rates, USD/JPY, VIX) | `market-snapshot` |
 | Stock sensitivity to yields and USD/JPY (rolling correlation, HAC regression, rate regimes) | `mkt analyze cross-asset`, `macro-cross-asset` |
 | AI vs non-AI leadership rotation (ETF baskets, relative strength, regime detection) | `mkt analyze rotation`, `ai-rotation` |
+| AI value chain: compute suppliers (chips, clouds) vs the large-cap backers that fund and buy compute | `mkt analyze baskets`, `mkt analyze rotation --baskets`, `ai-rotation` |
 | News sentiment scored by the agent with a fixed rubric, compared with returns | `mkt sentiment ...`, `news-sentiment` |
 | Briefing on articles you paste or link, checked against market data | `article-briefing` |
 | Single-ticker deep dive and a Cursor Canvas dashboard | `mkt export dashboard`, `ticker-deep-dive` |
@@ -210,6 +211,8 @@ uv run mkt fetch news NVDA --start 2026-10-01
 uv run mkt snapshot NVDA SPY
 uv run mkt analyze cross-asset NVDA --series DGS10 DEXJPUS --plot
 uv run mkt analyze rotation --plot
+uv run mkt analyze rotation --baskets compute_hw backers --plot   # named baskets from config.py
+uv run mkt analyze baskets compute_hw compute_cloud backers non_ai --plot
 uv run mkt sentiment summary NVDA --plot
 uv run mkt export dashboard NVDA SPY --canvas-dir ~/.cursor/projects/<workspace-slug>/canvases
 uv run mkt query "SELECT * FROM bars_daily LIMIT 5"

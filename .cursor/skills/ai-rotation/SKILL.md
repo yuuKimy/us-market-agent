@@ -40,6 +40,20 @@ uv run mkt analyze rotation --plot
 Options: `--start` (default 2 years), `--window 20`, `--threshold 4` (relative return in % needed
 to flip the regime). Lower threshold = more, shorter regimes. Keep defaults unless asked.
 
+**AI value chain split.** When the user asks about compute suppliers vs the companies that fund or
+buy compute (計算資源の供給側と出資・支援側), use the named baskets in `ROTATION_BASKETS`:
+`compute_hw` (NVDA AMD AVGO MU TSM LRCX ANET), `compute_cloud` (CRWV NBIS ORCL),
+`backers` (MSFT AMZN GOOGL META), plus `ai` and `non_ai`.
+
+```bash
+uv run mkt fetch bars NVDA AMD AVGO MU TSM LRCX ANET CRWV NBIS ORCL MSFT AMZN GOOGL META
+uv run mkt analyze baskets compute_hw compute_cloud backers non_ai --plot   # side-by-side returns
+uv run mkt analyze rotation --baskets compute_hw backers --plot           # regimes for one pair
+```
+
+`backers` also run clouds (AWS, Google Cloud, Azure), so say that the split is by role, not a clean
+separation. `compute_cloud` has only three members and CRWV starts in 2025-03, so it is noisy.
+
 **3. Context for the latest one or two switches**
 
 - Drivers: the `members` table shows which ETFs moved most over the window
@@ -59,6 +73,8 @@ to flip the regime). Lower threshold = more, shorter regimes. Keep defaults unle
   some AI stocks at small weight
 
 ## Answer format (Japanese)
+
+回答全体（作業中の進捗報告、見出し、表、図の説明を含む）を自然な日本語で書く。英語の文や見出しを混ぜない。ティッカー、系列 ID、コマンドは原文のままでよい。
 
 ```markdown
 ## AI 関連とそれ以外のローテーション（{start}〜{as_of}）
