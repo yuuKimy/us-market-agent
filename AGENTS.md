@@ -9,7 +9,8 @@
 | --- | --- |
 | プロファイル | `standard` |
 | 検証 subagent | `verifier` — パッケージ改修の完了宣言・PR 前 |
-| 査読 subagent | `design-reviewer` — MCP 設定・CLI 表面・免責境界の変更前 |
+| 設計査読 | `design-reviewer` — MCP 設定・CLI 表面・免責境界の変更前 |
+| PR 査読（任意） | `pr-reviewer` — マージ前の第三者レビュー（skill `pr-pre-merge-review`） |
 
 ## 二つの仕事（混ぜない）
 
@@ -35,7 +36,7 @@ uv run mkt news unscored --for-agent --symbols …   # 既定で high 超は JSO
 
 `~/.cursor/skills/`（`mywork/agent-kit/skills/` から `sync-skills.sh` で同期）:
 
-- `agent-orchestration` / `project-agent-scaffold` / `verify-gate` / `git-workflow`
+- `agent-orchestration` / `project-agent-scaffold` / `verify-gate` / `pr-pre-merge-review` / `git-workflow`
 
 ドメインパック: `pack-analysis-app`（個人環境では `mywork/agent-kit/packs/pack-analysis-app.md`。GitHub 単体クローンでは同梱されない）
 
@@ -46,7 +47,8 @@ uv run mkt news unscored --for-agent --symbols …   # 既定で high 超は JSO
 | 名前 | readonly | 用途 |
 | --- | --- | --- |
 | `verifier` | はい | pytest + ruff |
-| `design-reviewer` | はい | MCP・免責・untrusted テキスト・テスト方針 |
+| `design-reviewer` | はい | MCP・免責・untrusted テキスト・テスト方針（実装前） |
+| `pr-reviewer` | はい | マージ前 PR・doc/実装一致（特に injection） |
 
 ## 絶対に守ること
 

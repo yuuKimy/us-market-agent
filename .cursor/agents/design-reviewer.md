@@ -40,3 +40,5 @@ readonly: true
 ## 出力
 
 重大 / 軽微 / 質問（テンプレ）。
+
+PR マージ直前の第三者サマリ・優先度表は **`pr-reviewer`**（`pr-pre-merge-review` skill）。
