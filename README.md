@@ -16,7 +16,7 @@ It combines:
 > **Disclaimer.** This is a personal tool for gathering and analyzing information on US stocks,
 > shared for reference only. It is **not investment advice**. All investment decisions are your
 > own responsibility, and the author accepts **no liability** for any loss arising from its use.
-> See [DISCLAIMER.md](DISCLAIMER.md) (English / 日本語).
+> See [DISCLAIMER.md](DISCLAIMER.md) (English / 日本語), including options data limitations.
 >
 > This product uses the FRED® API but is not endorsed or certified by the Federal Reserve Bank of
 > St. Louis. By using this project, you agree to the
