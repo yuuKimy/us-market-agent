@@ -61,8 +61,8 @@ uv run mkt news unscored --for-agent --symbols …   # 既定で high 超は JSO
 
 | 用途 | 手段 |
 | --- | --- |
-| 最新スナップショット、値上がり/値下がり上位、個別ニュースの閲覧、オプション IV | Alpaca MCP（`get_stock_snapshot`, `get_market_movers`, `get_news`, `get_option_snapshot` など） |
-| 日足の時系列、ニュースの蓄積、指標計算、作図 | Python CLI `uv run mkt ...`（alpaca-py → DuckDB） |
+| 最新スナップショット、値上がり/値下がり上位、個別ニュースの閲覧、オプション IV の即時参照 | Alpaca MCP（`get_stock_snapshot`, `get_market_movers`, `get_news`, `get_option_snapshot` など） |
+| 日足の時系列、オプション出来高・価格の蓄積、ニュース、指標計算、作図 | Python CLI `uv run mkt ...`（alpaca-py → DuckDB）。オプションは `mkt fetch options` / `mkt analyze options` |
 | 米国債利回り、ドル円、ドル指数、VIX | Python CLI `uv run mkt fetch macro`（FRED → DuckDB） |
 | 決算日程・マクロイベントなどの背景 | WebSearch（出典 URL を明記） |
 
@@ -81,11 +81,14 @@ mkt status                                 # 保存済みデータの件数と a
 mkt fetch bars [SYMBOL ...] [--start D] [--full]   # 日足（調整済み）を差分取得。SYMBOL 省略時は保存済み全銘柄
 mkt fetch macro [SERIES ...] [--start D]   # FRED 系列。省略時はカタログ全系列
 mkt fetch news SYMBOL ... [--start D] [--end D] [--limit N]
+mkt fetch options SYMBOL [--start D] [--dte-min 7] [--dte-max 45] [--strike-steps 10]
+   # 単一銘柄・ATM±Nストライクの日足（出来高・オプション終値/vwap）。IVとATM建玉は最新セッションのみ（建玉は取得時の契約一覧）。options_strike_daily に保存
 mkt query "SELECT ..."                     # DuckDB への読み取り専用 SQL
 mkt snapshot SYMBOL ...                    # 保存済み日足から騰落率・出来高比
 mkt analyze cross-asset SYMBOL ... [--series DGS10 DEXJPUS] [--start D] [--window 60] [--freq D|W] [--market SPY] [--plot]
 mkt analyze rotation [--ai ...] [--non-ai ...] [--baskets A B] [--series ...] [--window 20] [--threshold 4] [--plot]
 mkt analyze baskets [NAME ...] [--start D] [--plot]   # 名前付きバスケット（ai, non_ai, compute_hw, compute_cloud, backers）を並べて比較
+mkt analyze options SYMBOL [--start D] [--plot]      # 保存済みオプション指標のサマリとチャート（MVP: 銘柄1つ）
 mkt plot prices SYMBOL ... [--series DGS10] [--start D]
 mkt news unscored [--symbols S ...] [--start D] [--limit N]   # 未採点ニュースを JSONL で出力
 mkt sentiment import FILE|-                # 採点結果 JSONL を保存
@@ -98,7 +101,9 @@ Canvas は `--canvas-dir` に現在のワークスペースの `~/.cursor/projec
 
 FRED カタログ: `DGS3MO`, `DGS2`, `DGS10`, `DGS30`, `T10Y2Y`, `DFII10`, `DEXJPUS`, `DTWEXBGS`, `VIXCLS`（定義は `src/market_agent/config.py`）。
 
-DuckDB テーブル: `bars_daily`, `macro_series`, `news`, `news_sentiment`（定義は `src/market_agent/store.py`）。
+DuckDB テーブル: `bars_daily`, `macro_series`, `news`, `news_sentiment`, `options_daily_metrics`, `options_strike_daily`（定義は `src/market_agent/store.py`）。
+
+オプション取得は Alpaca の契約一覧 API（読み取り）を使う。`.env` の `ALPACA_OPTIONS_FEED` は `indicative`（遅延・無料）または `opra`（要サブスクリプション）。`ALPACA_PAPER_TRADE` 未設定時は paper として接続する。
 
 ## スキル
 

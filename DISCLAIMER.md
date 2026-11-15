@@ -3,11 +3,12 @@
 ## English
 
 1. **Purpose.** This repository is a personal tool for gathering and analyzing information
-   related to investing in US stocks. It is published for reference only.
+   related to US equities and listed equity options. It is published for reference only.
 2. **Not investment advice.** Nothing in this repository, including the code, rules, agent
    skills, charts and any output they produce, is investment advice or a recommendation or
-   solicitation to buy, sell or hold any security. The author is not a registered investment
-   adviser or a licensed financial services provider.
+   solicitation to buy, sell or hold any security, or to enter, exit or adjust any option or
+   other derivative position. The author is not a registered investment adviser or a licensed
+   financial services provider.
 3. **Your own responsibility.** All investment decisions are made at your own discretion and
    risk. Do your own research and, if needed, consult a qualified professional.
 4. **No liability.** The author accepts no liability whatsoever for any loss or damage, direct or
@@ -22,8 +23,8 @@
 
 ## 日本語
 
-1. **目的**: 本リポジトリは、米国株式投資のための情報収集・分析を目的とした個人用ツールであり、参考情報として公開しています。
-2. **投資助言ではありません**: 本リポジトリのコード・ルール・エージェントスキル・チャート、およびそれらが生成する出力は、いずれも投資助言ではなく、特定の有価証券の売買や保有を推奨・勧誘するものでもありません。本リポジトリの作成者は、投資助言・代理業等の金融商品取引業の登録を受けた者ではありません。
+1. **目的**: 本リポジトリは、米国株式および上場株式オプションに関する情報収集・分析を目的とした個人用ツールであり、参考情報として公開しています。
+2. **投資助言ではありません**: 本リポジトリのコード・ルール・エージェントスキル・チャート、およびそれらが生成する出力は、いずれも投資助言ではなく、特定の有価証券の売買や保有、またはオプションその他デリバティブポジションの新規・解消・調整を推奨・勧誘するものでもありません。本リポジトリの作成者は、投資助言・代理業等の金融商品取引業の登録を受けた者ではありません。
 3. **投資は自己責任です**: 投資に関する最終的な判断は、ご自身の責任において行ってください。必要に応じて、専門家にご相談ください。
 4. **作成者は一切の責任を負いません**: 本リポジトリおよびその出力の利用、またはそれらに依拠したことによって生じたいかなる損失・損害（直接・間接を問いません）についても、本リポジトリの作成者は一切の責任を負いません。
 5. **正確性は保証しません**: データには遅延・欠損・誤りが含まれる可能性があり、AI エージェントが生成する出力にも誤りが含まれる可能性があります。データおよび分析結果の正確性・完全性・適時性は保証しません。
@@ -33,7 +34,21 @@
 ## Data sources / データソース
 
 - Market data and news: [Alpaca Market Data API](https://docs.alpaca.markets/) (news is provided by Benzinga via Alpaca)
+- US listed equity options (contract metadata, historical option bars, and limited snapshots):
+  [Alpaca Market Data API](https://docs.alpaca.markets/) and Alpaca's read-only option-contract
+  listing. The CLI never submits option orders.
 - Treasury yields, USD/JPY, dollar index, VIX: [FRED, Federal Reserve Bank of St. Louis](https://fred.stlouisfed.org/)
+
+**Options data limitations (not a substitute for a live quote or risk system).** Option metrics in
+this project are for personal research only. The feed is set by `ALPACA_OPTIONS_FEED` (for example
+`indicative`, which may be delayed, or `opra` if your subscription includes it). Historical
+backfill is best-effort: sessions may be skipped, strikes and expiries are selected by heuristics,
+and implied volatility may be missing or populated only for recent sessions. ATM open interest, when
+present, is taken from the contract listing at fetch time (not a full historical OI series). Volume,
+prices and IV can be incomplete or stale. Charts and CLI summaries do not describe margin, assignment, exercise,
+tax treatment or suitability. Do not rely on them to price or structure trades.
+
+**オプションデータに関する注意（リアルタイム気配やリスク管理の代替ではありません）。** 本プロジェクトのオプション指標は個人の調査目的に限ります。フィードは `ALPACA_OPTIONS_FEED` で指定します（例: 遅延のある `indicative`、または契約に応じた `opra`）。過去データの取得はベストエフォートであり、セッション欠損、ストライク・満期のヒューリスティック選択、IV の欠損や直近セッションのみの補完があり得ます。ATM 建玉は取得時点の契約一覧に含まれる場合のみ（過去日の建玉系列ではありません）。出来高・価格・IV は不完全または古い場合があります。チャートおよび CLI の要約は、証拠金・権利行使・譲渡・税務・適合性を説明するものではありません。取引の価格決定やストラクチャ設計の根拠にしないでください。
 
 Fetched data is stored locally under `data/` and is intentionally excluded from the repository.
 Follow each provider's terms of use; this repository does not redistribute their data.

@@ -53,6 +53,42 @@ CREATE TABLE IF NOT EXISTS news_safety (
     rules_json VARCHAR NOT NULL,
     scanner_version VARCHAR NOT NULL
 );
+CREATE TABLE IF NOT EXISTS options_daily_metrics (
+    underlying VARCHAR NOT NULL,
+    date DATE NOT NULL,
+    expiry DATE NOT NULL,
+    atm_strike DOUBLE NOT NULL,
+    call_symbol VARCHAR,
+    put_symbol VARCHAR,
+    iv_call DOUBLE,
+    iv_put DOUBLE,
+    iv_atm DOUBLE,
+    volume_call DOUBLE,
+    volume_put DOUBLE,
+    open_interest_call DOUBLE,
+    open_interest_put DOUBLE,
+    underlying_close DOUBLE NOT NULL,
+    feed VARCHAR,
+    fetched_at TIMESTAMPTZ NOT NULL,
+    PRIMARY KEY (underlying, date)
+);
+CREATE TABLE IF NOT EXISTS options_strike_daily (
+    underlying VARCHAR NOT NULL,
+    date DATE NOT NULL,
+    expiry DATE NOT NULL,
+    strike DOUBLE NOT NULL,
+    option_type VARCHAR NOT NULL,
+    contract_symbol VARCHAR,
+    volume DOUBLE,
+    close DOUBLE,
+    vwap DOUBLE,
+    iv DOUBLE,
+    underlying_close DOUBLE NOT NULL,
+    atm_strike DOUBLE NOT NULL,
+    feed VARCHAR,
+    fetched_at TIMESTAMPTZ NOT NULL,
+    PRIMARY KEY (underlying, date, expiry, strike, option_type)
+);
 """
 
 
@@ -90,6 +126,38 @@ def load_closes(con: duckdb.DuckDBPyConnection, symbols: list[str], start: str |
     ).df()
     df["date"] = pd.to_datetime(df["date"])
     return df.pivot(index="date", columns="symbol", values="close").sort_index()
+
+
+def load_options_strikes(
+    con: duckdb.DuckDBPyConnection, underlying: str, start: str | None = None
+) -> pd.DataFrame:
+    df = con.execute(
+        """
+        SELECT * FROM options_strike_daily
+        WHERE underlying = ? AND date >= coalesce(?::DATE, DATE '1900-01-01')
+        ORDER BY date, strike, option_type
+        """,
+        [underlying, start],
+    ).df()
+    if not df.empty:
+        df["date"] = pd.to_datetime(df["date"])
+    return df
+
+
+def load_options_metrics(
+    con: duckdb.DuckDBPyConnection, underlying: str, start: str | None = None
+) -> pd.DataFrame:
+    df = con.execute(
+        """
+        SELECT * FROM options_daily_metrics
+        WHERE underlying = ? AND date >= coalesce(?::DATE, DATE '1900-01-01')
+        ORDER BY date
+        """,
+        [underlying, start],
+    ).df()
+    if not df.empty:
+        df["date"] = pd.to_datetime(df["date"])
+    return df
 
 
 def load_bars(con: duckdb.DuckDBPyConnection, symbols: list[str], start: str | None = None) -> pd.DataFrame:
@@ -173,5 +241,13 @@ def status(con: duckdb.DuckDBPyConnection) -> dict[str, pd.DataFrame]:
         ).df(),
         "news_sentiment": con.execute(
             "SELECT symbol, count(*) AS scored, round(avg(score), 3) AS avg_score FROM news_sentiment GROUP BY 1 ORDER BY 1"
+        ).df(),
+        "options_daily_metrics": con.execute(
+            "SELECT underlying, count(*) AS rows, min(date) AS first, max(date) AS as_of, "
+            "round(avg(iv_atm), 4) AS avg_iv_atm FROM options_daily_metrics GROUP BY 1 ORDER BY 1"
+        ).df(),
+        "options_strike_daily": con.execute(
+            "SELECT underlying, count(*) AS rows, min(date) AS first, max(date) AS as_of "
+            "FROM options_strike_daily GROUP BY 1 ORDER BY 1"
         ).df(),
     }

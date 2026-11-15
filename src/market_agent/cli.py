@@ -107,6 +107,125 @@ def cmd_fetch_macro(args: argparse.Namespace) -> None:
     _print("macro_series", status[status["series_id"].isin(series)])
 
 
+OPTIONS_DEFAULT_LOOKBACK_DAYS = 60
+
+
+def cmd_fetch_options(args: argparse.Namespace) -> None:
+    from market_agent.clients import alpaca_options
+
+    symbols = _upper(args.symbols)
+    if len(symbols) != 1:
+        raise SystemExit("options fetch supports exactly one underlying symbol (MVP).")
+    underlying = symbols[0]
+    con = store.connect()
+    start = args.start or (date.today() - timedelta(days=OPTIONS_DEFAULT_LOOKBACK_DAYS)).isoformat()
+    _require_columns(
+        store.load_closes(con, [underlying], start),
+        [underlying],
+        "mkt fetch bars",
+    )
+    bars = store.load_bars(con, [underlying], start)
+    bars = bars.loc[bars["symbol"] == underlying, ["date", "close"]].drop_duplicates("date")
+    if bars.empty:
+        raise SystemExit(f"No bars for {underlying} since {start}. Run: mkt fetch bars {underlying}")
+
+    metrics, strikes = alpaca_options.fetch_options_data(
+        underlying,
+        bars,
+        dte_min=args.dte_min,
+        dte_max=args.dte_max,
+        strike_steps=args.strike_steps,
+    )
+    n = store.upsert(con, "options_daily_metrics", metrics)
+    ns = store.upsert(con, "options_strike_daily", strikes)
+    print(
+        f"fetched {n} option metric rows and {ns} strike rows for {underlying} from {start} "
+        f"(monthly {args.dte_min}-{args.dte_max} DTE, ATM ±{args.strike_steps} strikes)"
+    )
+    if n < len(bars):
+        print(f"NOTE: {len(bars) - n} sessions skipped (no expiry/contracts/bars). Best-effort backfill.")
+    iv_rows = metrics["iv_atm"].notna().sum() if not metrics.empty else 0
+    oi_rows = 0
+    if not metrics.empty and {"open_interest_call", "open_interest_put"}.issubset(metrics.columns):
+        oi_rows = metrics[["open_interest_call", "open_interest_put"]].notna().any(axis=1).sum()
+    print(
+        f"NOTE: IV and ATM open interest apply to the latest session only "
+        f"({iv_rows} IV row(s), {oi_rows} OI row(s); OI from contract listing as-of fetch)."
+    )
+    st = store.status(con)
+    _print("options_daily_metrics", st["options_daily_metrics"][st["options_daily_metrics"]["underlying"] == underlying])
+    _print("options_strike_daily", st["options_strike_daily"][st["options_strike_daily"]["underlying"] == underlying])
+
+
+def cmd_analyze_options(args: argparse.Namespace) -> None:
+    symbols = _upper(args.symbols)
+    if len(symbols) != 1:
+        raise SystemExit("options analyze supports exactly one underlying symbol (MVP).")
+    underlying = symbols[0]
+    start = args.start or (date.today() - timedelta(days=OPTIONS_DEFAULT_LOOKBACK_DAYS)).isoformat()
+    con = store.connect(read_only=True)
+    metrics = store.load_options_metrics(con, underlying, start)
+    if metrics.empty:
+        raise SystemExit(f"No options metrics for {underlying}. Run: mkt fetch options {underlying}")
+
+    metrics["date"] = pd.to_datetime(metrics["date"])
+    vol_total = metrics["volume_call"].fillna(0) + metrics["volume_put"].fillna(0)
+
+    def _delta(series: pd.Series, days: int) -> float | None:
+        if len(series) <= days:
+            return None
+        return float(series.iloc[-1] - series.iloc[-1 - days])
+
+    latest = metrics.iloc[-1]
+    print(f"\n## options summary {underlying} ({start} to {latest['date'].date()})")
+    print(f"rows: {len(metrics)}, feed: {latest.get('feed', 'n/a')}")
+    print(f"latest expiry: {latest['expiry']}  atm strike: {latest['atm_strike']}")
+    if pd.notna(latest.get("iv_atm")):
+        iv = latest["iv_atm"] * 100 if latest["iv_atm"] <= 2 else latest["iv_atm"]
+        print(f"latest IV (ATM avg): {iv:.2f}%")
+    else:
+        print("latest IV (ATM avg): (missing — run fetch options on a recent session)")
+    oi_c, oi_p = latest.get("open_interest_call"), latest.get("open_interest_put")
+    if pd.notna(oi_c) or pd.notna(oi_p):
+        call_s = f"{oi_c:,.0f}" if pd.notna(oi_c) else "(n/a)"
+        put_s = f"{oi_p:,.0f}" if pd.notna(oi_p) else "(n/a)"
+        print(f"latest ATM open interest (listing as-of fetch): call {call_s}, put {put_s}")
+    else:
+        print("latest ATM open interest: (missing — contract listing had no OI; not backfilled)")
+    n_sess = 5
+    if len(vol_total) >= n_sess + 1:
+        d_vol = _delta(vol_total, n_sess)
+        print(
+            f"daily ATM option volume (call+put): latest {vol_total.iloc[-1]:,.0f}; "
+            f"change vs {n_sess} sessions earlier: {d_vol:,.0f}"
+        )
+        print(f"mean daily volume over last {n_sess} sessions: {vol_total.tail(n_sess).mean():,.0f}")
+    if pd.notna(latest.get("underlying_close")):
+        closes = metrics.set_index("date")["underlying_close"]
+        if len(closes) >= n_sess + 1:
+            ret = (closes.iloc[-1] / closes.iloc[-1 - n_sess] - 1) * 100
+            print(f"{n_sess}-session underlying return: {ret:.2f}%")
+
+    strikes = store.load_options_strikes(con, underlying, start)
+    if not strikes.empty:
+        strike_session = strikes["date"].max()
+        sub = strikes.loc[strikes["date"] == strike_session].copy()
+        sub["vol"] = sub["volume"].fillna(0)
+        top = (
+            sub.groupby(["strike", "option_type"], as_index=False)["vol"]
+            .sum()
+            .sort_values("vol", ascending=False)
+            .head(8)
+        )
+        print(f"\n## strike volume profile ({underlying}, session {strike_session.date()}, top 8 legs)")
+        _print("by strike", top.rename(columns={"vol": "volume"}), digits=0)
+
+    if args.plot:
+        print(f"plot: {plots.options_metrics(metrics, underlying)}")
+        if not strikes.empty:
+            print(f"plot: {plots.options_strike_charts(strikes, underlying)}")
+
+
 def cmd_fetch_news(args: argparse.Namespace) -> None:
     from market_agent.clients import alpaca
 
@@ -538,6 +657,17 @@ def build_parser() -> argparse.ArgumentParser:
     fn.add_argument("--end")
     fn.add_argument("--limit", type=int, default=200)
     fn.set_defaults(func=cmd_fetch_news)
+    fo = fetch.add_parser("options", help="ATM monthly option volume (+ latest IV) into DuckDB")
+    fo.add_argument("symbols", nargs="+", help="exactly one underlying symbol (MVP)")
+    fo.add_argument(
+        "--start",
+        metavar="D",
+        help=f"session start (default: {OPTIONS_DEFAULT_LOOKBACK_DAYS} calendar days back, best-effort)",
+    )
+    fo.add_argument("--dte-min", type=int, default=7, help="minimum DTE for monthly expiry pick")
+    fo.add_argument("--dte-max", type=int, default=45, help="maximum DTE for monthly expiry pick")
+    fo.add_argument("--strike-steps", type=int, default=10, help="ATM ± strike steps to fetch per session")
+    fo.set_defaults(func=cmd_fetch_options)
 
     s = sub.add_parser("snapshot", help="returns and volume from stored bars")
     s.add_argument("symbols", nargs="+")
@@ -570,6 +700,11 @@ def build_parser() -> argparse.ArgumentParser:
     bk.add_argument("--start", default=str(date.today() - timedelta(days=2 * 365)))
     bk.add_argument("--plot", action="store_true")
     bk.set_defaults(func=cmd_baskets)
+    ao = analyze.add_parser("options", help="summarize stored ATM option IV and volume")
+    ao.add_argument("symbols", nargs="+", help="exactly one underlying symbol (MVP)")
+    ao.add_argument("--start", metavar="D", help=f"default: last {OPTIONS_DEFAULT_LOOKBACK_DAYS} days")
+    ao.add_argument("--plot", action="store_true", help="write PNG to reports/")
+    ao.set_defaults(func=cmd_analyze_options)
 
     plot = sub.add_parser("plot").add_subparsers(dest="chart", required=True)
     pp = plot.add_parser("prices", help="rebased prices with macro series")
