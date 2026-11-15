@@ -81,11 +81,14 @@ mkt status                                 # 保存済みデータの件数と a
 mkt fetch bars [SYMBOL ...] [--start D] [--full]   # 日足（調整済み）を差分取得。SYMBOL 省略時は保存済み全銘柄
 mkt fetch macro [SERIES ...] [--start D]   # FRED 系列。省略時はカタログ全系列
 mkt fetch news SYMBOL ... [--start D] [--end D] [--limit N]
+mkt fetch options SYMBOL [--start D] [--dte-min 7] [--dte-max 45] [--strike-steps 10]
+   # 単一銘柄・ATM±Nストライクの日足（出来高・オプション終値/vwap）。IVは最新セッションのみ。options_strike_daily に保存
 mkt query "SELECT ..."                     # DuckDB への読み取り専用 SQL
 mkt snapshot SYMBOL ...                    # 保存済み日足から騰落率・出来高比
 mkt analyze cross-asset SYMBOL ... [--series DGS10 DEXJPUS] [--start D] [--window 60] [--freq D|W] [--market SPY] [--plot]
 mkt analyze rotation [--ai ...] [--non-ai ...] [--baskets A B] [--series ...] [--window 20] [--threshold 4] [--plot]
 mkt analyze baskets [NAME ...] [--start D] [--plot]   # 名前付きバスケット（ai, non_ai, compute_hw, compute_cloud, backers）を並べて比較
+mkt analyze options SYMBOL [--start D] [--plot]      # 保存済みオプション指標のサマリとチャート（MVP: 銘柄1つ）
 mkt plot prices SYMBOL ... [--series DGS10] [--start D]
 mkt news unscored [--symbols S ...] [--start D] [--limit N]   # 未採点ニュースを JSONL で出力
 mkt sentiment import FILE|-                # 採点結果 JSONL を保存

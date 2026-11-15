@@ -40,13 +40,19 @@ uv run mkt fetch news NVDA --start <30 days ago>
 **4. Sentiment** — score unscored articles per `news-sentiment`, then
 `uv run mkt sentiment summary NVDA --start <30 days ago> --plot`.
 
-**5. Events and options** (Alpaca MCP)
+**5. Events and options**
 
-- `get_corporate_actions` for the symbol: splits, dividends, spin-offs in the past year and upcoming.
-  A split or dividend after the last full fetch → `uv run mkt fetch bars NVDA --full`
-- Earnings dates are not in Alpaca; use WebSearch and cite the source
-- `get_option_chain` / `get_option_snapshot` for the nearest monthly expiry: at-the-money implied
-  volatility and put/call skew. Keep it to a few strikes; do not dump the chain
+- `get_corporate_actions` (MCP) for splits, dividends, spin-offs. After a split/dividend → `mkt fetch bars SYMBOL --full`
+- Earnings dates: WebSearch and cite the source
+- **Primary path (reproducible):** one underlying only (MVP):
+
+```bash
+uv run mkt fetch options NVDA
+uv run mkt analyze options NVDA --plot
+```
+
+ATM monthly (7–45 DTE), ATM ±10 strikes, ~60-day backfill; strike volume + option close/vwap in DuckDB; IV on latest session only. Mention `feed` and IV sparsity.
+- MCP `get_option_snapshot` only to peek at a different expiry/strike; do not dump the chain
 
 **6. Dashboard** — write a Cursor Canvas. Pass the **current workspace's** canvases directory
 (`~/.cursor/projects/<workspace-slug>/canvases`, the slug is the workspace path with `/` replaced by `-`):

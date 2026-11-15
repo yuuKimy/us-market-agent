@@ -147,3 +147,74 @@ def sentiment(joined: pd.DataFrame, closes: pd.DataFrame, name: str) -> Path:
         ax.xaxis.set_major_locator(locator)
         ax.xaxis.set_major_formatter(mdates.ConciseDateFormatter(locator))
     return _save(fig, name)
+
+
+def options_metrics(metrics: pd.DataFrame, underlying: str) -> Path:
+    """Underlying close, ATM IV, and option volume from options_daily_metrics."""
+    df = metrics.sort_values("date").copy()
+    df["date"] = pd.to_datetime(df["date"])
+    fig, axes = plt.subplots(3, 1, figsize=(WIDTH, 9), sharex=True)
+    df.set_index("date")["underlying_close"].plot(ax=axes[0], color="black", linewidth=1.2)
+    axes[0].set_title(f"{underlying}: adjusted close")
+    axes[0].set_ylabel("close")
+    _guides(axes[0])
+
+    iv_pct = df.set_index("date")["iv_atm"]
+    if iv_pct.notna().any():
+        iv_plot = iv_pct * 100 if iv_pct.max(skipna=True) <= 2 else iv_pct
+        iv_plot.plot(ax=axes[1], color="tab:red", linewidth=1.2, marker="o", markersize=3)
+    axes[1].set_title("ATM implied volatility (latest snapshot; sparse backfill)")
+    axes[1].set_ylabel("IV (%)")
+    _guides(axes[1])
+
+    vol = df.set_index("date")[["volume_call", "volume_put"]].fillna(0)
+    vol.plot(ax=axes[2], linewidth=1.0)
+    axes[2].set_title("ATM call / put contract day volume")
+    axes[2].set_ylabel("volume")
+    axes[2].legend(loc="upper left")
+    _guides(axes[2])
+    locator = mdates.AutoDateLocator(maxticks=12)
+    axes[2].xaxis.set_major_locator(locator)
+    axes[2].xaxis.set_major_formatter(mdates.ConciseDateFormatter(locator))
+    return _save(fig, f"options_{underlying}")
+
+
+def options_strike_charts(strikes: pd.DataFrame, underlying: str) -> Path:
+    """Latest-session volume by strike and ATM option premium (close) over time."""
+    df = strikes.sort_values(["date", "strike", "option_type"]).copy()
+    df["date"] = pd.to_datetime(df["date"])
+    latest = df["date"].max()
+    profile = df.loc[df["date"] == latest].pivot_table(index="strike", columns="option_type", values="volume", aggfunc="sum")
+    profile = profile.sort_index()
+
+    atm = df.loc[df["strike"] == df["atm_strike"]]
+    call_close = atm.loc[atm["option_type"] == "call"].set_index("date")["close"]
+    put_close = atm.loc[atm["option_type"] == "put"].set_index("date")["close"]
+
+    fig, axes = plt.subplots(2, 1, figsize=(WIDTH, 8), sharex=False)
+    if not profile.empty:
+        profile.fillna(0).plot(kind="bar", ax=axes[0], width=0.85)
+        axes[0].set_title(f"{underlying} {latest.date()}: volume by strike (ATM ± band)")
+        axes[0].set_xlabel("strike")
+        axes[0].set_ylabel("contract volume")
+        axes[0].legend(title="")
+        _guides(axes[0])
+    else:
+        axes[0].set_title("(no strike volume for latest session)")
+
+    if not call_close.empty or not put_close.empty:
+        if not call_close.empty:
+            call_close.plot(ax=axes[1], label="ATM call close", color="tab:blue", linewidth=1.2)
+        if not put_close.empty:
+            put_close.plot(ax=axes[1], label="ATM put close", color="tab:orange", linewidth=1.2)
+        axes[1].set_title("ATM option premium (daily close)")
+        axes[1].set_ylabel("premium ($)")
+        axes[1].legend(loc="upper left")
+        _guides(axes[1])
+        locator = mdates.AutoDateLocator(maxticks=12)
+        axes[1].xaxis.set_major_locator(locator)
+        axes[1].xaxis.set_major_formatter(mdates.ConciseDateFormatter(locator))
+    else:
+        axes[1].set_title("(no ATM option prices in range)")
+
+    return _save(fig, f"options_strikes_{underlying}")
