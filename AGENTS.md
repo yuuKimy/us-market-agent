@@ -82,7 +82,7 @@ mkt fetch bars [SYMBOL ...] [--start D] [--full]   # 日足（調整済み）を
 mkt fetch macro [SERIES ...] [--start D]   # FRED 系列。省略時はカタログ全系列
 mkt fetch news SYMBOL ... [--start D] [--end D] [--limit N]
 mkt fetch options SYMBOL [--start D] [--dte-min 7] [--dte-max 45] [--strike-steps 10]
-   # 単一銘柄・ATM±Nストライクの日足（出来高・オプション終値/vwap）。IVは最新セッションのみ。options_strike_daily に保存
+   # 単一銘柄・ATM±Nストライクの日足（出来高・オプション終値/vwap）。IVとATM建玉は最新セッションのみ（建玉は取得時の契約一覧）。options_strike_daily に保存
 mkt query "SELECT ..."                     # DuckDB への読み取り専用 SQL
 mkt snapshot SYMBOL ...                    # 保存済み日足から騰落率・出来高比
 mkt analyze cross-asset SYMBOL ... [--series DGS10 DEXJPUS] [--start D] [--window 60] [--freq D|W] [--market SPY] [--plot]

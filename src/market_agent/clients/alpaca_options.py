@@ -82,7 +82,15 @@ def _contracts_for_expiry(underlying: str, expiry: date) -> pd.DataFrame:
         page = client.get_option_contracts(req)
         for c in page.option_contracts or []:
             raw_type = c.type.value if hasattr(c.type, "value") else str(c.type)
-            rows.append({"symbol": c.symbol, "strike": float(c.strike_price), "type": str(raw_type).lower()})
+            oi = c.open_interest
+            rows.append(
+                {
+                    "symbol": c.symbol,
+                    "strike": float(c.strike_price),
+                    "type": str(raw_type).lower(),
+                    "open_interest": float(oi) if oi is not None else None,
+                }
+            )
         token = page.next_page_token
         if not token:
             break
@@ -123,23 +131,28 @@ def _daily_option_bars(symbols: list[str], day: date) -> pd.DataFrame:
     return pd.concat(frames, ignore_index=True)
 
 
-def _snapshot_fields(symbols: list[str]) -> dict[str, dict]:
+def _snapshot_iv(symbols: list[str]) -> dict[str, float | None]:
     if not symbols:
         return {}
     request = OptionSnapshotRequest(symbol_or_symbols=symbols, feed=_options_feed())
     snaps = _option_data_client().get_option_snapshot(request)
-    out: dict[str, dict] = {}
+    out: dict[str, float | None] = {}
     for sym in symbols:
         snap = snaps.get(sym)
         if snap is None:
             continue
         iv = snap.implied_volatility
-        out[sym] = {
-            "iv": float(iv) if iv is not None else None,
-            "open_interest": None,
-            "volume": None,
-        }
+        out[sym] = float(iv) if iv is not None else None
     return out
+
+
+def _contract_open_interest(contracts: pd.DataFrame, symbol: str | None) -> float | None:
+    if not symbol or contracts.empty or "open_interest" not in contracts.columns:
+        return None
+    val = contracts.loc[contracts["symbol"] == symbol, "open_interest"]
+    if val.empty or pd.isna(val.iloc[0]):
+        return None
+    return float(val.iloc[0])
 
 
 def _pair_symbols(contracts: pd.DataFrame, strike: float) -> tuple[str | None, str | None]:
@@ -164,7 +177,8 @@ def fetch_options_data(
     Build daily ATM monthly option metrics.
 
     schedule: columns date (datetime or date), close (underlying close).
-    IV snapshots are only requested for the latest row (historical IV is usually unavailable).
+    IV snapshots and open interest are only filled for the latest session (historical IV/OI
+    are usually unavailable from these APIs; OI comes from the contract listing at fetch time).
     """
     empty_m = pd.DataFrame(columns=OPTIONS_METRICS_COLUMNS)
     empty_s = pd.DataFrame(columns=OPTIONS_STRIKE_COLUMNS)
@@ -210,8 +224,7 @@ def fetch_options_data(
 
         snap_iv: dict[str, float | None] = {}
         if fill_iv_for_latest and day == latest_day and all_symbols:
-            for sym, data in _snapshot_fields(all_symbols).items():
-                snap_iv[sym] = data.get("iv")
+            snap_iv = _snapshot_iv(all_symbols)
 
         for strike, opt_type, sym in symbol_map:
             bar = bar_by_sym.loc[sym] if sym in bar_by_sym.index else None
@@ -245,6 +258,8 @@ def fetch_options_data(
                 iv_call = snap_iv[call_sym]
             if put_sym and put_sym in snap_iv:
                 iv_put = snap_iv[put_sym]
+            oi_call = _contract_open_interest(contracts, call_sym)
+            oi_put = _contract_open_interest(contracts, put_sym)
 
         iv_vals = [v for v in (iv_call, iv_put) if v is not None]
         iv_atm = sum(iv_vals) / len(iv_vals) if iv_vals else None

@@ -145,7 +145,13 @@ def cmd_fetch_options(args: argparse.Namespace) -> None:
     if n < len(bars):
         print(f"NOTE: {len(bars) - n} sessions skipped (no expiry/contracts/bars). Best-effort backfill.")
     iv_rows = metrics["iv_atm"].notna().sum() if not metrics.empty else 0
-    print(f"NOTE: IV snapshots apply to the latest session only ({iv_rows} metric row(s); per-strike IV same day).")
+    oi_rows = 0
+    if not metrics.empty and {"open_interest_call", "open_interest_put"}.issubset(metrics.columns):
+        oi_rows = metrics[["open_interest_call", "open_interest_put"]].notna().any(axis=1).sum()
+    print(
+        f"NOTE: IV and ATM open interest apply to the latest session only "
+        f"({iv_rows} IV row(s), {oi_rows} OI row(s); OI from contract listing as-of fetch)."
+    )
     st = store.status(con)
     _print("options_daily_metrics", st["options_daily_metrics"][st["options_daily_metrics"]["underlying"] == underlying])
     _print("options_strike_daily", st["options_strike_daily"][st["options_strike_daily"]["underlying"] == underlying])
@@ -179,6 +185,13 @@ def cmd_analyze_options(args: argparse.Namespace) -> None:
         print(f"latest IV (ATM avg): {iv:.2f}%")
     else:
         print("latest IV (ATM avg): (missing — run fetch options on a recent session)")
+    oi_c, oi_p = latest.get("open_interest_call"), latest.get("open_interest_put")
+    if pd.notna(oi_c) or pd.notna(oi_p):
+        call_s = f"{oi_c:,.0f}" if pd.notna(oi_c) else "(n/a)"
+        put_s = f"{oi_p:,.0f}" if pd.notna(oi_p) else "(n/a)"
+        print(f"latest ATM open interest (listing as-of fetch): call {call_s}, put {put_s}")
+    else:
+        print("latest ATM open interest: (missing — contract listing had no OI; not backfilled)")
     n_sess = 5
     if len(vol_total) >= n_sess + 1:
         d_vol = _delta(vol_total, n_sess)

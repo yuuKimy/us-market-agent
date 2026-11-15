@@ -43,11 +43,12 @@
 this project are for personal research only. The feed is set by `ALPACA_OPTIONS_FEED` (for example
 `indicative`, which may be delayed, or `opra` if your subscription includes it). Historical
 backfill is best-effort: sessions may be skipped, strikes and expiries are selected by heuristics,
-and implied volatility may be missing or populated only for recent sessions. Volume, prices and IV
-can be incomplete or stale. Charts and CLI summaries do not describe margin, assignment, exercise,
+and implied volatility may be missing or populated only for recent sessions. ATM open interest, when
+present, is taken from the contract listing at fetch time (not a full historical OI series). Volume,
+prices and IV can be incomplete or stale. Charts and CLI summaries do not describe margin, assignment, exercise,
 tax treatment or suitability. Do not rely on them to price or structure trades.
 
-**オプションデータに関する注意（リアルタイム気配やリスク管理の代替ではありません）。** 本プロジェクトのオプション指標は個人の調査目的に限ります。フィードは `ALPACA_OPTIONS_FEED` で指定します（例: 遅延のある `indicative`、または契約に応じた `opra`）。過去データの取得はベストエフォートであり、セッション欠損、ストライク・満期のヒューリスティック選択、IV の欠損や直近セッションのみの補完があり得ます。出来高・価格・IV は不完全または古い場合があります。チャートおよび CLI の要約は、証拠金・権利行使・譲渡・税務・適合性を説明するものではありません。取引の価格決定やストラクチャ設計の根拠にしないでください。
+**オプションデータに関する注意（リアルタイム気配やリスク管理の代替ではありません）。** 本プロジェクトのオプション指標は個人の調査目的に限ります。フィードは `ALPACA_OPTIONS_FEED` で指定します（例: 遅延のある `indicative`、または契約に応じた `opra`）。過去データの取得はベストエフォートであり、セッション欠損、ストライク・満期のヒューリスティック選択、IV の欠損や直近セッションのみの補完があり得ます。ATM 建玉は取得時点の契約一覧に含まれる場合のみ（過去日の建玉系列ではありません）。出来高・価格・IV は不完全または古い場合があります。チャートおよび CLI の要約は、証拠金・権利行使・譲渡・税務・適合性を説明するものではありません。取引の価格決定やストラクチャ設計の根拠にしないでください。
 
 Fetched data is stored locally under `data/` and is intentionally excluded from the repository.
 Follow each provider's terms of use; this repository does not redistribute their data.
