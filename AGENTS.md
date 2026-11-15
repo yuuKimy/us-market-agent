@@ -26,7 +26,9 @@
 uv run mkt news unscored --for-agent --symbols …   # 既定で high 超は JSONL に出さない
 ```
 
-`injection.max_severity` が `critical` の行は採点しない。MCP `get_news` はスキャンなし（見出しの短い参照のみ）。
+- JSONL: 既定 `--for-agent` では **`critical` のみ省略**（ceiling=`high`）。`high` は JSONL に出る。
+- 採点: `none`〜`medium` のみルーブリック採点。`high` と `critical` は採点しない。
+- MCP `get_news` はスキャンなし（見出しの短い参照のみ）。
 `mkt news unscored` は未スキャン記事を `news_safety` に書き込むことがある。境界変更は `design-reviewer` のあと。
 
 ## 共通キット
