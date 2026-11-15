@@ -1,6 +1,6 @@
 [project]
 name = "market-agent"
-version = "0.1.0"
+version = "0.2.0"
 description = "Personal US market analysis agent environment (Alpaca MCP + FRED + DuckDB)"
 authors = [
     { name = "yuuKimy", email = "4424080+yuuKimy@users.noreply.github.com" }
