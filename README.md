@@ -56,7 +56,10 @@ tell the agent to:
 ## Security notes
 
 - **Use paper trading keys only.** The CLI and the MCP server only read data, so they do not need
-  live-account keys. Keep `ALPACA_PAPER_TRADE=true` in `.cursor/mcp.json`.
+  live-account keys. Keep `ALPACA_PAPER_TRADE=true` in `.cursor/mcp.json`. For `mkt fetch options`,
+  the CLI uses Alpaca's trading API client **only** to list option contracts (`get_option_contracts`);
+  it never submits orders. If `ALPACA_PAPER_TRADE` is unset in the environment, the options client
+  defaults to paper mode (`true`).
 - **Do not add the `trading`, `account` or `watchlists` toolsets** to `ALPACA_TOOLSETS`. The
   read-only toolset list is what keeps order tools out of the agent's reach.
 - **Treat fetched text as untrusted.** News articles and web pages the agent reads can contain text
@@ -81,6 +84,7 @@ tell the agent to:
 | AI value chain: compute suppliers (chips, clouds) vs the large-cap backers that fund and buy compute | `mkt analyze baskets`, `mkt analyze rotation --baskets`, `ai-rotation` |
 | News sentiment scored by the agent with a fixed rubric, compared with returns | `mkt sentiment ...`, `news-sentiment` |
 | Briefing on articles you paste or link, checked against market data | `article-briefing` |
+| Option volume and ATM premiums (single underlying, stored history) | `mkt fetch options`, `mkt analyze options`, `ticker-deep-dive` |
 | Single-ticker deep dive and a Cursor Canvas dashboard | `mkt export dashboard`, `ticker-deep-dive` |
 
 ## Requirements
@@ -105,6 +109,7 @@ cp .env.example .env   # then fill in the keys
 ALPACA_API_KEY=...
 ALPACA_SECRET_KEY=...
 ALPACA_DATA_FEED=iex   # paper-only accounts get IEX data
+ALPACA_OPTIONS_FEED=indicative   # or opra if your plan includes it
 FRED_API_KEY=...
 ```
 
@@ -183,8 +188,9 @@ upside/downside scenarios and what to watch. It never gives buy/sell calls or pr
 
 > Do a deep dive on NVDA and build a dashboard.
 
-Combines the skills above with corporate actions and option implied volatility from MCP, and
-writes a Cursor Canvas dashboard with `mkt export dashboard ... --canvas-dir <canvases dir>`.
+Combines the skills above with corporate actions, stored option metrics (`mkt fetch options` /
+`mkt analyze options`), and MCP only for quick option or corporate-action peeks, and writes a
+Cursor Canvas dashboard with `mkt export dashboard ... --canvas-dir <canvases dir>`.
 The dashboard has a snapshot table, rebased prices, macro series, rolling correlation, the
 regression table and sentiment bars over the close price, with gridlines and hover values.
 

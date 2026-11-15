@@ -61,8 +61,8 @@ uv run mkt news unscored --for-agent --symbols …   # 既定で high 超は JSO
 
 | 用途 | 手段 |
 | --- | --- |
-| 最新スナップショット、値上がり/値下がり上位、個別ニュースの閲覧、オプション IV | Alpaca MCP（`get_stock_snapshot`, `get_market_movers`, `get_news`, `get_option_snapshot` など） |
-| 日足の時系列、ニュースの蓄積、指標計算、作図 | Python CLI `uv run mkt ...`（alpaca-py → DuckDB） |
+| 最新スナップショット、値上がり/値下がり上位、個別ニュースの閲覧、オプション IV の即時参照 | Alpaca MCP（`get_stock_snapshot`, `get_market_movers`, `get_news`, `get_option_snapshot` など） |
+| 日足の時系列、オプション出来高・価格の蓄積、ニュース、指標計算、作図 | Python CLI `uv run mkt ...`（alpaca-py → DuckDB）。オプションは `mkt fetch options` / `mkt analyze options` |
 | 米国債利回り、ドル円、ドル指数、VIX | Python CLI `uv run mkt fetch macro`（FRED → DuckDB） |
 | 決算日程・マクロイベントなどの背景 | WebSearch（出典 URL を明記） |
 
@@ -101,7 +101,9 @@ Canvas は `--canvas-dir` に現在のワークスペースの `~/.cursor/projec
 
 FRED カタログ: `DGS3MO`, `DGS2`, `DGS10`, `DGS30`, `T10Y2Y`, `DFII10`, `DEXJPUS`, `DTWEXBGS`, `VIXCLS`（定義は `src/market_agent/config.py`）。
 
-DuckDB テーブル: `bars_daily`, `macro_series`, `news`, `news_sentiment`（定義は `src/market_agent/store.py`）。
+DuckDB テーブル: `bars_daily`, `macro_series`, `news`, `news_sentiment`, `options_daily_metrics`, `options_strike_daily`（定義は `src/market_agent/store.py`）。
+
+オプション取得は Alpaca の契約一覧 API（読み取り）を使う。`.env` の `ALPACA_OPTIONS_FEED` は `indicative`（遅延・無料）または `opra`（要サブスクリプション）。`ALPACA_PAPER_TRADE` 未設定時は paper として接続する。
 
 ## スキル
 

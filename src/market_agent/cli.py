@@ -179,22 +179,24 @@ def cmd_analyze_options(args: argparse.Namespace) -> None:
         print(f"latest IV (ATM avg): {iv:.2f}%")
     else:
         print("latest IV (ATM avg): (missing — run fetch options on a recent session)")
-    if len(vol_total) >= 5:
+    n_sess = 5
+    if len(vol_total) >= n_sess + 1:
+        d_vol = _delta(vol_total, n_sess)
         print(
-            f"5d total option volume (call+put): {_delta(vol_total, 5):,.0f} vs prior 5d "
-            f"(change in rolling 5d sum endpoint)"
+            f"daily ATM option volume (call+put): latest {vol_total.iloc[-1]:,.0f}; "
+            f"change vs {n_sess} sessions earlier: {d_vol:,.0f}"
         )
-        print(f"5d avg daily volume: {vol_total.tail(5).mean():,.0f}")
+        print(f"mean daily volume over last {n_sess} sessions: {vol_total.tail(n_sess).mean():,.0f}")
     if pd.notna(latest.get("underlying_close")):
         closes = metrics.set_index("date")["underlying_close"]
-        if len(closes) >= 5:
-            ret5 = (closes.iloc[-1] / closes.iloc[-5] - 1) * 100
-            print(f"5d underlying return: {ret5:.2f}%")
+        if len(closes) >= n_sess + 1:
+            ret = (closes.iloc[-1] / closes.iloc[-1 - n_sess] - 1) * 100
+            print(f"{n_sess}-session underlying return: {ret:.2f}%")
 
     strikes = store.load_options_strikes(con, underlying, start)
     if not strikes.empty:
-        latest = strikes["date"].max()
-        sub = strikes.loc[strikes["date"] == latest].copy()
+        strike_session = strikes["date"].max()
+        sub = strikes.loc[strikes["date"] == strike_session].copy()
         sub["vol"] = sub["volume"].fillna(0)
         top = (
             sub.groupby(["strike", "option_type"], as_index=False)["vol"]
@@ -202,7 +204,7 @@ def cmd_analyze_options(args: argparse.Namespace) -> None:
             .sort_values("vol", ascending=False)
             .head(8)
         )
-        print(f"\n## strike volume profile ({underlying}, session {latest.date()}, top 8 legs)")
+        print(f"\n## strike volume profile ({underlying}, session {strike_session.date()}, top 8 legs)")
         _print("by strike", top.rename(columns={"vol": "volume"}), digits=0)
 
     if args.plot:
