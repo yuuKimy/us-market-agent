@@ -38,6 +38,10 @@ It combines:
 
 ## Agent guardrails
 
+`AGENTS.md` ties this repo to the shared **agent-kit** pattern (`standard` gate, dev vs analysis
+modes, subagents `verifier` / `design-reviewer`). Package work uses the `market-agent-dev` skill;
+day-to-day market questions use the analysis skills listed below.
+
 The agent instructions in `AGENTS.md` and `.cursor/rules/` are written in Japanese. In short, they
 tell the agent to:
 
@@ -56,8 +60,10 @@ tell the agent to:
 - **Do not add the `trading`, `account` or `watchlists` toolsets** to `ALPACA_TOOLSETS`. The
   read-only toolset list is what keeps order tools out of the agent's reach.
 - **Treat fetched text as untrusted.** News articles and web pages the agent reads can contain text
-  written to steer an AI (prompt injection). The rules tell the agent to treat such text as data, and
-  no order tools are loaded, but review what the agent does before acting on it.
+  written to steer an AI (prompt injection). The CLI scans headlines/summaries with rule-based
+  `injection` metadata (`mkt news unscored --for-agent`, `mkt inspect text`). The rules tell the
+  agent to treat such text as data, and no order tools are loaded, but review what the agent does
+  before acting on it.
 - **The MCP server version is pinned** (`alpaca-mcp-server@2.4.1` in `.cursor/mcp.json`). Read the
   upstream release notes before changing it; v2 changed tool names and configuration.
 

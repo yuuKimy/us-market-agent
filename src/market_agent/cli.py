@@ -6,7 +6,7 @@ from pathlib import Path
 
 import pandas as pd
 
-from market_agent import indicators, plots, sentiment, store
+from market_agent import indicators, injection, plots, sentiment, store
 from market_agent.config import (
     DEFAULT_HISTORY_START,
     FRED_SERIES,
@@ -115,7 +115,10 @@ def cmd_fetch_news(args: argparse.Namespace) -> None:
     end = _utc(args.end) + timedelta(days=1) if args.end else None
     df = alpaca.fetch_news(_upper(args.symbols), start, end, args.limit)
     n = store.upsert(con, "news", df)
+    scanned = store.scan_news_frame(con, df)
     print(f"fetched {n} articles for {', '.join(_upper(args.symbols))} since {start:%Y-%m-%d}")
+    if scanned:
+        print(f"injection scan: {scanned} articles (scanner v{injection.SCANNER_VERSION})")
     if n == args.limit:
         print(f"NOTE: hit --limit {args.limit}; older articles in the range may be missing.")
     _print("news", store.status(con)["news"])
@@ -303,7 +306,7 @@ def cmd_plot_prices(args: argparse.Namespace) -> None:
 
 
 def cmd_news_unscored(args: argparse.Namespace) -> None:
-    con = store.connect(read_only=True)
+    con = store.connect()
     start = args.start or str(date.today() - timedelta(days=7))
     news = con.execute(
         "SELECT id, created_at, symbols, headline, summary, source FROM news WHERE created_at >= ?::DATE ORDER BY created_at DESC",
@@ -312,23 +315,51 @@ def cmd_news_unscored(args: argparse.Namespace) -> None:
     scored = set(con.execute("SELECT news_id, symbol FROM news_sentiment").fetchall())
     wanted = set(_upper(args.symbols))
     emitted = 0
+    skipped_severity = 0
     for row in news.itertuples():
         targets = [s for s in row.symbols if (not wanted or s in wanted) and (row.id, s) not in scored]
         if not targets:
             continue
-        print(json.dumps({
+        safety = store.safety_for_article(con, int(row.id), row.headline, row.summary or "")
+        if not injection.severity_within_ceiling(safety.max_severity, args.max_severity):
+            skipped_severity += 1
+            continue
+        headline = row.headline or ""
+        summary = (row.summary or "")[: args.max_summary]
+        if args.for_agent:
+            headline = injection.wrap_for_agent(headline)
+            summary = injection.wrap_for_agent(summary)
+        payload: dict[str, object] = {
             "news_id": int(row.id),
             "created_at": row.created_at.isoformat(),
             "target_symbols": targets,
             "all_symbols": list(row.symbols),
-            "headline": row.headline,
-            "summary": (row.summary or "")[: args.max_summary],
+            "headline": headline,
+            "summary": summary,
             "source": row.source,
-        }, ensure_ascii=False))
+        }
+        if not args.no_injection:
+            payload["injection"] = safety.to_json_obj()
+            payload["scanner_version"] = injection.SCANNER_VERSION
+        print(json.dumps(payload, ensure_ascii=False))
         emitted += 1
         if emitted >= args.limit:
             break
-    print(f"# {emitted} unscored articles", file=sys.stderr)
+    msg = f"# {emitted} unscored articles"
+    if skipped_severity:
+        msg += f" ({skipped_severity} skipped above --max-severity {args.max_severity})"
+    print(msg, file=sys.stderr)
+
+
+def cmd_inspect_text(args: argparse.Namespace) -> None:
+    if args.file == "-":
+        text = sys.stdin.read()
+    else:
+        text = Path(args.file).read_text(encoding="utf-8")
+    print(injection.format_scan_lines(text))
+    if args.json:
+        result = injection.scan_text(text)
+        print(json.dumps(result.to_json_obj(), ensure_ascii=False))
 
 
 def cmd_sentiment_import(args: argparse.Namespace) -> None:
@@ -546,7 +577,31 @@ def build_parser() -> argparse.ArgumentParser:
     nu.add_argument("--start")
     nu.add_argument("--limit", type=int, default=30)
     nu.add_argument("--max-summary", type=int, default=600)
+    nu.add_argument(
+        "--max-severity",
+        choices=injection.SEVERITIES,
+        default="critical",
+        help="omit articles above this severity (default: emit all)",
+    )
+    nu.add_argument(
+        "--for-agent",
+        action="store_true",
+        help="wrap headline/summary in <<<DATA delimiters",
+    )
+    nu.add_argument(
+        "--no-injection",
+        action="store_true",
+        help="omit injection metadata from JSONL",
+    )
     nu.set_defaults(func=cmd_news_unscored)
+
+    ins = sub.add_parser("inspect", help="utilities that do not fetch remote APIs").add_subparsers(
+        dest="inspect_cmd", required=True
+    )
+    it = ins.add_parser("text", help="scan text or a file for injection heuristics")
+    it.add_argument("file", nargs="?", default="-", help="path or - for stdin")
+    it.add_argument("--json", action="store_true", help="also print JSON scan result")
+    it.set_defaults(func=cmd_inspect_text)
 
     sent = sub.add_parser("sentiment").add_subparsers(dest="sent_cmd", required=True)
     si = sent.add_parser("import", help="store agent-produced scores (JSONL file or '-')")
