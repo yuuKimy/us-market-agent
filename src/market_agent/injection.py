@@ -55,9 +55,9 @@ _RULES: list[tuple[str, str, re.Pattern[str]]] = [
       re.compile(r'\{\s*"role"\s*:\s*"(system|assistant|tool)"', re.IGNORECASE),
   ),
   (
-      "markdown_fence_stack",
+      "markdown_fence_block",
       "high",
-      re.compile(r"`{3,}"),
+      re.compile(r"(^|\n)```[^\n]*$", re.MULTILINE),
   ),
   (
       "bidi_override",

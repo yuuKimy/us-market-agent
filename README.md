@@ -61,9 +61,12 @@ tell the agent to:
   read-only toolset list is what keeps order tools out of the agent's reach.
 - **Treat fetched text as untrusted.** News articles and web pages the agent reads can contain text
   written to steer an AI (prompt injection). The CLI scans headlines/summaries with rule-based
-  `injection` metadata (`mkt news unscored --for-agent`, `mkt inspect text`). The rules tell the
-  agent to treat such text as data, and no order tools are loaded, but review what the agent does
-  before acting on it.
+  `injection` metadata. For **agent scoring**, always use:
+  `uv run mkt news unscored --for-agent --symbols …` (with `--for-agent`, articles above **high**
+  severity are omitted by default). Pasted or fetched article bodies: `uv run mkt inspect text -`.
+  **Alpaca MCP `get_news` is not scanned**—use it only for short headline peeks; scoring goes through
+  the CLI. The rules tell the agent to treat text as data, and no order tools are loaded, but review
+  what the agent does before acting on it.
 - **The MCP server version is pinned** (`alpaca-mcp-server@2.4.1` in `.cursor/mcp.json`). Read the
   upstream release notes before changing it; v2 changed tool names and configuration.
 

@@ -36,6 +36,17 @@ def test_wrap_for_agent_escapes_end_marker():
     assert wrapped.endswith("\nDATA")
 
 
+def test_inline_backticks_not_high_severity():
+    result = injection.scan_text("Use `run` and ```inline``` ticks in prose.")
+    assert result.max_severity != "high"
+
+
+def test_markdown_fence_block_is_high():
+    result = injection.scan_text("Intro\n```python\nprint(1)\n```\n")
+    assert result.max_severity == "high"
+    assert "markdown_fence_block" in result.rules
+
+
 def test_scan_result_json_roundtrip():
     result = injection.ScanResult("medium", ("zero_width",))
     assert json.loads(json.dumps(result.to_json_obj())) == {

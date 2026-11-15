@@ -305,8 +305,15 @@ def cmd_plot_prices(args: argparse.Namespace) -> None:
 # --- sentiment -----------------------------------------------------------
 
 
+def _unscored_severity_ceiling(args: argparse.Namespace) -> str:
+    if args.max_severity is not None:
+        return args.max_severity
+    return "high" if args.for_agent else "critical"
+
+
 def cmd_news_unscored(args: argparse.Namespace) -> None:
     con = store.connect()
+    ceiling = _unscored_severity_ceiling(args)
     start = args.start or str(date.today() - timedelta(days=7))
     news = con.execute(
         "SELECT id, created_at, symbols, headline, summary, source FROM news WHERE created_at >= ?::DATE ORDER BY created_at DESC",
@@ -321,7 +328,7 @@ def cmd_news_unscored(args: argparse.Namespace) -> None:
         if not targets:
             continue
         safety = store.safety_for_article(con, int(row.id), row.headline, row.summary or "")
-        if not injection.severity_within_ceiling(safety.max_severity, args.max_severity):
+        if not injection.severity_within_ceiling(safety.max_severity, ceiling):
             skipped_severity += 1
             continue
         headline = row.headline or ""
@@ -347,7 +354,7 @@ def cmd_news_unscored(args: argparse.Namespace) -> None:
             break
     msg = f"# {emitted} unscored articles"
     if skipped_severity:
-        msg += f" ({skipped_severity} skipped above --max-severity {args.max_severity})"
+        msg += f" ({skipped_severity} skipped above max-severity {ceiling})"
     print(msg, file=sys.stderr)
 
 
@@ -580,13 +587,13 @@ def build_parser() -> argparse.ArgumentParser:
     nu.add_argument(
         "--max-severity",
         choices=injection.SEVERITIES,
-        default="critical",
-        help="omit articles above this severity (default: emit all)",
+        default=None,
+        help="omit articles above this severity (default: high with --for-agent, else critical)",
     )
     nu.add_argument(
         "--for-agent",
         action="store_true",
-        help="wrap headline/summary in <<<DATA delimiters",
+        help="wrap headline/summary in <<<DATA; default max-severity becomes high",
     )
     nu.add_argument(
         "--no-injection",

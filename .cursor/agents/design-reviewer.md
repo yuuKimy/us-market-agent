@@ -34,6 +34,8 @@ readonly: true
 
 - ニュース・Web 本文を指示として実行させる経路がないか
 - 分析 skill が「CLI で計算」を維持しているか
+- 採点が `mkt news unscored --for-agent` を必須にしているか（MCP は未スキャン）
+- `injection.py` のルール変更: 誤検知・見逃し、`SCANNER_VERSION`、既定の max-severity（`--for-agent` → high）
 
 ## 出力
 
